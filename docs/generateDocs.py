@@ -56,7 +56,7 @@ PARENT_DIR = BASE_PATH.split(os.sep + 'docs')[0]
 TAG_FILE_PATH = "doxygen" + os.sep + "cinder.tag"
 
 # TODO: These should be dynamic via doxygen generated data. perhaps from _cinder_8h.xml
-file_meta = {
+docs_meta = {
     "cinder_version": "",
     "doxy_version": "",
     "creation_date": str(datetime.today().date()),
@@ -1918,7 +1918,7 @@ def process_xml_file_definition(in_path, out_path, file_type):
         "section_namespace": "cinder",
         str("section_" + section): "true"}
     # append file meta
-    content_dict.update(file_meta.copy())
+    content_dict.update(docs_meta.copy())
 
     # render within main template
     bs4 = render_template(os.path.join(TEMPLATE_PATH, "master-template.mustache"), content_dict)
@@ -2476,7 +2476,7 @@ def process_html_file(in_path, out_path):
     update_links_abs(bs4, os.path.dirname(in_path))
     content_dict = {'page_title': file_content["title"], 'main_content': get_body_content(bs4), 'body_class': body_class, str("section_" + section): "true"}
     # append file meta
-    content_dict.update(file_meta.copy())
+    content_dict.update(docs_meta.copy())
 
     # plug everything into the master template
     bs4 = render_template(os.path.join(TEMPLATE_PATH, "master-template.mustache"), content_dict)
@@ -3664,27 +3664,31 @@ def copytree(src, dst, symlinks=False, ignore=None):
             shutil.copy2(s, d)
 
 
-def load_meta():
-    global file_meta
+def parse_metadata():
+
+    # meta will use docs_meta as a base and adjust from there
+    meta = docs_meta.copy()
 
     # load meta file
     meta_file = parse_xml(config.PROJECT_META_FILE)
 
     # get doxygen version
-    file_meta["doxy_version"] = meta_file.attrib.get("version")
+    meta["doxy_version"] = meta_file.attrib.get("version")
 
     # get cinder version
     for member in meta_file.findall(r'compounddef/sectiondef/memberdef[@kind="define"]'):
         if member.find(r"name").text == "CINDER_VERSION_STR":
             ver = str(member.find(r"initializer").text)
             ver = ver.replace('"', "")
-            file_meta["cinder_version"] = ver
+            meta["cinder_version"] = ver
 
     # get docs directory
-    file_meta["docs_root"] = args.root
+    meta["docs_root"] = args.root
 
     # include google analytics
-    file_meta["include_analytics"] = args.include_analytics
+    meta["include_analytics"] = args.include_analytics
+
+    return meta;
 
 
 def log(message, level=0, force=False):
@@ -3739,7 +3743,8 @@ if __name__ == "__main__":
         quit()
 
     # load meta data
-    load_meta()
+    docs_meta = parse_metadata();
+
 
     # Load tag file
     log("parsing tag file", 0, True)
@@ -3747,6 +3752,7 @@ if __name__ == "__main__":
     # generate symbol map from tag file
     g_symbolMap = get_symbol_to_file_map()
 
+    # quit();
     # copy files from htmlsrc/ to html/
     log("copying files", 0, True)
     copy_files()
