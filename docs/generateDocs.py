@@ -42,8 +42,11 @@ from posixpath import join as urljoin
 
 # Third party in libs folder
 sys.path.append("libs/")
+sys.path.append("python/")
 from bs4 import BeautifulSoup, Tag, NavigableString, Comment
 from pystache.renderer import Renderer, Loader
+
+from utils import Logger
 
 # static path vars
 BASE_PATH = os.path.dirname(os.path.realpath(__file__)) + os.sep
@@ -242,6 +245,7 @@ g_symbolMap = None
 g_search_index = None
 config = Config()
 state = State()
+logger = None
 
 
 # =========================================================================================================== SYMBOL MAP
@@ -3691,23 +3695,10 @@ def parse_metadata():
     return meta;
 
 
-def log(message, level=0, force=False):
-    if level == 0 or not level:
-        message_prefix = "INFO"
-    elif level == 1:
-        message_prefix = "WARNING"
-    elif level == 2:
-        message_prefix = "ERROR"
-
+def log(message, level=0, force=False):    
     if args.debug or force:
-        print("\r    *** " + message_prefix + ": [ " + message + " ] ***")
-
-
-def log_progress(message):
-    sys.stdout.write('\r' + str(message))
-    sys.stdout.write("\033[K")
-    sys.stdout.flush()
-
+        logger.log(message, level)
+        
 
 if __name__ == "__main__":
     """ Main Function for generating html documentation from doxygen generated xml files
@@ -3723,6 +3714,7 @@ if __name__ == "__main__":
     """
 
     args = parser.parse_args()
+    logger = Logger()
 
     # Make sure we're compiling using pythong 2.7.6+
     version_info = sys.version_info
