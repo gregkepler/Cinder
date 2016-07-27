@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+from search_index import SearchIndex
 
 def get_parent_dir(directory):
     import os
@@ -171,10 +173,19 @@ class State(object):
         self.html_files.append(file)
 
 # globals
-symbolMap = None
+symbolsMap = None
 g_tag_xml = None
-g_search_index = None
+search_index = SearchIndex()
 config = Config()
 state = State()
 args = None
+namespace_nav = None
+
+# TODO: These should be dynamic via doxygen generated data. perhaps from _cinder_8h.xml
+meta = {
+    "cinder_version": "",
+    "doxy_version": "",
+    "creation_date": str(datetime.today().date()),
+    "docs_root": ""
+}
 # logger = None

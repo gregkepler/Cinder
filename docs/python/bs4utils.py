@@ -1,6 +1,10 @@
 import os
-from bs4 import Comment, NavigableString, Tag
-from utils import relative_url
+from bs4 import Comment, NavigableString, Tag, BeautifulSoup
+# from utils import relative_url, path_join
+import utils
+import globals as g
+from globals import PATHS
+from pystache.renderer import Renderer, Loader
 
 # convert docygen markup to html markup
 tagDictionary = {
@@ -68,7 +72,7 @@ def gen_rel_link_tag(bs4, text, link, src_dir, dest_dir):
     # make sure they are dirs
     src_dir = os.path.dirname(src_dir) + os.sep
     dest_dir = os.path.dirname(dest_dir) + os.sep
-    new_link = relative_url(dest_dir, link)
+    new_link = utils.relative_url(dest_dir, link)
     link_tag = gen_link_tag(bs4, text, new_link)
     return link_tag
 
@@ -167,6 +171,75 @@ def iterate_markup(bs4, tree, parent):
 
     return current_tag
 
+
+def iter_class_base(class_def, hierarchy):
+    """ Iterates the class to find all of their base classes
+        and iterate through them
+    Args:
+        classDef: The instance of SymbolMap::Class Object whose base we are searching for
+        hierachy: The current hierachy of classes to append to if we find another base
+    """
+
+    if class_def is None or hasattr(class_def, 'name') is False:
+        return False
+
+    base = class_def.base
+
+    if base is None:
+        return False
+    else:
+        new_tree = g.symbolsMap.find_class(base)
+        # add to hierarchy if it continues
+        if iter_class_base(new_tree, hierarchy) is not False:
+            hierarchy.append(new_tree)
+
+
+def gen_class_hierarchy(bs4, class_def):
+    """ Generates the class hierarchy side bar, with each class linking
+        out to its class file.
+    Args:
+        bs4: The current beautifulSoup html instance
+        classDef: The instance of SymbolMap::Class Object that we are generating
+            the hierachy for
+    Returns:
+        Empty if there is no base class
+        Ul if there is hierarchy
+    """
+
+    if class_def is None:
+        return
+
+    # first item in the list will be the original class
+    hierarchy = []
+
+    # get the class' hierarchy
+    iter_class_base(class_def, hierarchy)
+    hierarchy.append(class_def)
+
+    if len(hierarchy) == 1:
+        return
+
+    # create all of the markup
+    ul = gen_tag(bs4, "ul")
+    add_class_to_tag(ul, "inheritence")
+
+    # go through the hierarchy and add a list item for each member
+    # for index, base in enumerate(reversed(hierarchy)):
+    for index, base in enumerate(hierarchy):
+        li = gen_tag(bs4, "li")
+        add_class_to_tag(li, "depth" + str(index + 1))
+
+        # link out only if a base class, not the original class
+        if index < len(hierarchy) - 1:
+            a = gen_tag(bs4, "a", [], base.qualifiedName)
+            define_link_tag(a, {'href': base.path})
+            a = gen_link_tag(bs4, base.qualifiedName, utils.path_join(PATHS["HTML_DEST_PATH"], a["href"]))
+            li.append(a)
+        else:
+            li.append(base.qualifiedName)
+        ul.append(li)
+
+    return ul
 
 def replace_tag(bs4, tree, parent_tag, content):
     tag = tree.tag
@@ -380,3 +453,195 @@ def generate_namespace_nav():
 
     iterate_namespace(bs4, namespaces, ul, 0, "")
     return ul
+
+
+def iterate_namespace(bs4, namespaces, tree, index, label):
+    # Get namespace of previous child, unless first
+    if index == 0:
+        parent_ns = ""
+    else:
+        parent_ns = namespaces[index - 1].name
+
+    count = index
+    child_count = 0
+
+    # iterate to find all children of parentNs
+    for ns in namespaces[index:]:
+        namespace = ns.name  # full namespace
+        ns_parts = namespace.split("::")
+        prefix = "::".join(ns_parts[:-1])  # parent namespace up to last ::
+
+        name = "".join(ns_parts[-1])
+        node_label = label + str(child_count)
+
+        # check if derived from any parent
+        parent_is_derived = has_ancestor(namespaces, namespace)
+
+        # create a list item for the namespace
+        ns_li = gen_tag(bs4, "li")
+        ns_li["data-namespace"] = namespace
+
+        # create link for each item
+        a_tag = gen_link_tag(bs4, name, utils.path_join(PATHS["HTML_SOURCE_PATH"], ns.path))
+
+        # is decendent of parent namespace
+        if prefix == parent_ns:
+
+            child_count += 1
+
+            # append to parent
+            tree.append(ns_li)
+
+            # generate new nested ul in case there are children
+            ns_ul = gen_tag(bs4, "ul")
+            if count < len(namespaces):
+
+                # if there are children, add to the parent ul
+                if iterate_namespace(bs4, namespaces, ns_ul, count + 1, node_label) > 0:
+                    # add input
+                    input_el = gen_tag(bs4, "input")
+                    input_el["type"] = "checkbox"
+                    input_el["id"] = "item-" + "-".join(list(node_label))
+
+                    # root is expanded by default
+                    if index == 0:
+                        input_el.attrs["checked"] = "true"
+
+                    label_tag = gen_tag(bs4, "label")
+                    label_tag["for"] = "item-" + "-".join(list(node_label))
+                    label_tag.append(a_tag)
+
+                    ns_li.insert(0, input_el)
+                    ns_li.append(label_tag)
+                    ns_li.append(ns_ul)
+                else:
+                    ns_li.append(a_tag)
+
+        else:
+            # has no direct descendent on the parent, so add it independently
+            if parent_is_derived is False and index is 0:
+                child_count += 1
+                indie_li = gen_tag(bs4, "li")
+                # indieLi.append( prefix )
+
+                # TODO: refactor and simplify some of this stuff
+                input_el = gen_tag(bs4, "input")
+                input_el["type"] = "checkbox"
+                input_el["id"] = "item-" + "-".join(list(node_label))
+                indie_li.insert(0, input_el)
+
+                label_tag = gen_tag(bs4, "label")
+                label_tag["for"] = "item-" + "-".join(list(node_label))
+                label_tag.append(prefix)
+                indie_li.append(label_tag)
+
+                indie_ul = gen_tag(bs4, "ul")
+                indie_li.append(indie_ul)
+                indie_ul.append(ns_li)
+                ns_li.append(a_tag)
+
+                tree.append(indie_li)
+
+        count += 1
+
+    return child_count
+
+
+
+def has_ancestor(namespaces, compare_namespace):
+    compare_prefix = "::".join(compare_namespace.split("::")[0])
+    # hasAncestor = False
+    for ns in namespaces:
+        namespace = ns.name
+        prefix = "::".join(namespace.split("::")[0])
+        if prefix == compare_prefix and compare_namespace != namespace:
+            return True
+
+    return False
+
+
+def generate_bs4(file_path):
+
+    # tree = None
+    try:
+        with open(file_path, "rb") as html_file:
+            content = html_file.read().decode("utf-8", errors="replace")
+            new_content = content.encode("utf-8", errors="replace")
+
+        # wrap in body tag if none exists
+        if new_content.find("<body") < 0:
+            new_content = "<body>" + new_content + "</body>"
+            log("No body tag found in file: " + file_path)
+
+        bs4 = BeautifulSoup(new_content)
+        return bs4
+
+    except Exception as e:
+        log(e.message, 2)
+        return None
+
+
+def generate_bs4_from_string(string):
+
+    # make sure it's a unicode object
+    if type(string) != unicode:
+        output_string = string.decode("utf-8", errors="replace")
+    else:
+        output_string = string
+
+    # wrap in body tag if none exists
+    if string.find("<body") < 0:
+        output_string = "<body>" + output_string + "</body>"
+
+    bs4 = BeautifulSoup(output_string)
+    return bs4
+
+
+def render_template(path, content):
+    """
+    Generates a BeautifulSoup instance from the template and injects content
+    :param path:
+    :param content:
+    :return:
+    """
+    # try:
+    # renderer = Renderer(file_encoding="utf-8", string_encoding="utf-8", decode_errors="xmlcharrefreplace")
+    # renderer.search_dirs.append(PATHS["TEMPLATE_PATH"])
+    # output = renderer.render_path(path, content)
+
+
+    # print content
+    # print path
+    # step 1: render content in template
+    content_renderer = Renderer(file_encoding="utf-8", string_encoding="utf-8", decode_errors="xmlcharrefreplace")
+    content_renderer.search_dirs.append(PATHS["TEMPLATE_PATH"])
+    output = content_renderer.render_path(path, content)
+
+    # step 2: place rendered content into main template
+    # - should have the following custom partials:
+    #   - page title (define in object for page templates)
+    #   - page content (rendered page content)
+    #   - any other common partials that may lie outside the basic content area
+
+    # loader = Loader()
+    # template = loader.read("title")
+    # title_partial = loader.load_name(os.path.join(CLASS_TEMPLATE_DIR, "title"))
+
+    # except Exception as exc:
+    #     print "\t**--------------------------------"
+    #     print "\t** Warning: cannot render template"
+    #     print "\t**--------------------------------"
+    #     print exc
+    #     print exc.message
+    #     print(traceback.format_exc())
+    #     exc_type, exc_obj, exc_tb = sys.exc_info()
+    #     fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+    #     print(exc_type, fname, exc_tb.tb_lineno)
+    #
+    #     if config.BREAK_ON_STOP_ERRORS:
+    #         quit()
+    #     else:
+    #         return
+
+    bs4 = generate_bs4_from_string(output)
+    return bs4
