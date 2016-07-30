@@ -108,6 +108,112 @@ def path_join(path, link):
     return new_link
 
 
+def get_namespace(full_string):
+    ns_parts = full_string.split("::")
+    prefix = "::".join(ns_parts[:-1])  # parent namespace up to last ::
+    return prefix
+
+
+def extract_anchor(element):
+    if element.attrib["id"]:
+        return element.attrib["id"].split("_1")[-1]
+    else:
+        return None
+
+
+def parse_member_definition(bs4, member, member_name=None):
+    """
+    Parses a function tree and generates an object out of it
+    :param bs4: beautifulsoup instance
+    :param member: the member to parse
+    :param member_name: the name of the class that's being parsed
+    :return: the data object
+    """
+    if not member_name:
+        member_name = member.find(r"name")
+        member_name = member_name.text if member_name is not None else None
+
+    anchor = find_member_anchor(member)
+
+    # return type
+    return_div = bs4utils.gen_tag(bs4, "span")
+    return_markup = bs4utils.iterate_markup(bs4, member.find(r"type"), return_div)
+
+    # if id has a glm group key, replace link with <em>. The links are irrelevent atm
+    if any(member.attrib["id"].find(group_key) > -1 for group_key in config.GLM_MODULE_CONFIG["group_keys"]):
+        if return_markup:
+            bs4utils.replace_element(bs4, return_markup.a, "em")
+
+    return_str = str(return_markup)
+
+    # get args
+    argstring = member.find("argsstring")
+    if argstring is None:
+        argstring = member.find("arglist")
+    argstring_text = argstring.text if argstring is not None else ""
+
+    # description
+    description_div = bs4utils.markup_description(bs4, member)
+    description_str = str(description_div) if len(description_div.text) > 0 else None
+
+    member_obj = {
+        "name": member_name,
+        "return": return_str,
+        "anchor": anchor,
+        "definition": {
+            "name": member_name,
+            "args": argstring_text
+        },
+        "description": description_str
+    }
+
+    return member_obj
+
+
+def parse_function(bs4, member, class_name=None):
+
+    member_name = member.find(r"name")
+    member_name = member_name.text if member_name is not None else None
+    is_constructor = False
+
+    # determine if it is a constructor
+    if class_name is not None:
+        if member_name is not None and member_name == strip_compound_name(class_name):
+            is_constructor = True
+
+    member_obj = parse_member_definition(bs4, member, member_name)
+    member_obj["is_constructor"] = is_constructor
+    return member_obj
+
+
+def parse_enum(bs4, member):
+
+    member_obj = parse_member_definition(bs4, member)
+    values = []
+    for val in member.findall("enumvalue"):
+        enum_name = val.find("name").text
+        values.append({"name": enum_name})
+
+    member_obj["values"] = values
+    member_obj["return"] = "enum"
+    return member_obj
+
+
+def find_typedefs_of(class_name, typedef_list):
+    """
+    Finds typedef objects that are shared from the given class within a given namespace
+    :return: list if SymbolMap.Typedef objects
+    """
+    typedefs = []
+    class_name = strip_compound_name(class_name)
+    
+    for typedef in typedef_list:
+        if typedef.sharedFrom:
+            if typedef.sharedFrom.name == class_name:
+                typedefs.append(typedef)
+    return typedefs
+
+
 # ======================================================================================================== Link Updating
 
 
