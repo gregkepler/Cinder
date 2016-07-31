@@ -18,6 +18,24 @@ tagDictionary = {
     "para": "p"
 }
 
+# =============================================================================================== HTML generation functions
+
+def generate_namespace_nav():
+    """
+    Creates a div filled with a list of namespace links
+    :param bs4: The Beautiful soup instance used for dom manipulation
+    :return: a new div that contains the navigation tree
+    """
+    bs4 = BeautifulSoup()
+    namespaces = g.symbolsMap.get_whitelisted_namespaces()
+
+    ul = gen_tag(bs4, "ul")
+    add_class_to_tag(ul, "css-treeview")
+    ul["id"] = "namespace-nav"
+
+    iterate_namespace(bs4, namespaces, ul, 0, "")
+    return ul
+
 
 def gen_anchor_tag(bs4, anchor_name):
     anchor = gen_tag(bs4, "a")
@@ -434,25 +452,6 @@ def get_template(bs4, element_id):
             continue
 
     return template
-
-
-def generate_namespace_nav():
-    """
-    Creates a div filled with a list of namespace links
-    :param bs4: The Beautiful soup instance used for dom manipulation
-    :return: a new div that contains the navigation tree
-    """
-    bs4 = BeautifulSoup()
-    namespaces = g.symbolsMap.get_whitelisted_namespaces()
-
-    # tree = gen_tag(bs4, "div")
-    ul = gen_tag(bs4, "ul")
-    # tree.append(ul)
-    add_class_to_tag(ul, "css-treeview")
-    ul["id"] = "namespace-nav"
-
-    iterate_namespace(bs4, namespaces, ul, 0, "")
-    return ul
 
 
 def iterate_namespace(bs4, namespaces, tree, index, label):

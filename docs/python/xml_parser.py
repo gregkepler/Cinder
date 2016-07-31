@@ -6,6 +6,7 @@ import bs4utils
 import globals as g
 from globals import PATHS, config
 from bs4 import BeautifulSoup
+import ci_tag
 
 # ============================================================================================ File Processing Functions
 
@@ -89,7 +90,7 @@ def process_xml_file_definition(in_path, out_path, file_type):
 
     # link up all ci tags
     for tag in bs4.find_all('ci'):
-        process_ci_tag(bs4, tag, in_path, out_path)
+        ci_tag.process_ci_tag(bs4, tag, in_path, out_path)
 
     # add to search index
     link_path = bs4utils.gen_rel_link_tag(bs4, "", out_path, PATHS["HTML_SOURCE_PATH"], PATHS["HTML_DEST_PATH"])["href"]

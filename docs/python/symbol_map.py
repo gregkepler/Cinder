@@ -6,17 +6,16 @@ from bs4 import BeautifulSoup
 import xml.etree.ElementTree as ET
 import re
 
-def generate_symbol_map():
+def generate_map(tag_path):
     """
     Returns a dictionary from Cinder class name to file path
     """
     log("generating symbol map from tag file", 0, True)
     symbol_map = SymbolMap(globals.config)
 
-
     # find classes
-    g_tag_xml = ET.ElementTree(ET.parse(globals.PATHS["TAG_FILE_PATH"]).getroot())
-    class_tags = g_tag_xml.findall(r'compound/[@kind="class"]')
+    tag_xml = ET.ElementTree(ET.parse(tag_path).getroot())
+    class_tags = tag_xml.findall(r'compound/[@kind="class"]')
     for c in class_tags:
         class_obj = SymbolMap.Class(c)
         name = class_obj.qualifiedName
@@ -54,7 +53,7 @@ def generate_symbol_map():
             symbol_map.enums[enum_name] = enum_obj
 
     # find structs
-    struct_tags = g_tag_xml.findall(r'compound/[@kind="struct"]')
+    struct_tags = tag_xml.findall(r'compound/[@kind="struct"]')
     for s in struct_tags:
         struct_obj = SymbolMap.Class(s)
         name = struct_obj.qualifiedName
@@ -81,7 +80,7 @@ def generate_symbol_map():
             struct_obj.add_function(function_obj.name, function_obj)
 
     # find namespaces
-    ns_tags = g_tag_xml.findall(r'compound/[@kind="namespace"]')
+    ns_tags = tag_xml.findall(r'compound/[@kind="namespace"]')
 
     for ns in ns_tags:
         namespace_name = ns.find('name').text
@@ -120,7 +119,7 @@ def generate_symbol_map():
             ns_obj.add_function(function_obj.name, function_obj)
 
     # find files
-    file_tags = g_tag_xml.findall(r'compound/[@kind="file"]')
+    file_tags = tag_xml.findall(r'compound/[@kind="file"]')
     for f in file_tags:
         name = f.find('name').text
         # filePath = f.find('path').text + f.find('filename').text
@@ -144,7 +143,7 @@ def generate_symbol_map():
             symbol_map.add_function("", function_obj.name, function_obj)
 
     # find groups
-    group_tags = g_tag_xml.findall(r'compound/[@kind="group"]')
+    group_tags = tag_xml.findall(r'compound/[@kind="group"]')
     for member in group_tags:
         group_obj = SymbolMap.Group(member)
         subgroups = member.findall('subgroup')

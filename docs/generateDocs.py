@@ -40,7 +40,7 @@ sys.path.append("python/")
 import utils as utils
 # from utils import strip_compound_name, parse_xml, log, log_progress, path_join, 
 from utils import log, log_progress, LinkData
-from symbol_map import SymbolMap, generate_symbol_map
+import symbol_map
 import globals as g
 from globals import PATHS, config
 import bs4utils
@@ -167,7 +167,8 @@ def process_dir(in_path, out_path):
 
 
 def process_html_dir(in_path):
-    # global state
+    """ Iterates the HTML directory
+    """
 
     for path, subdirs, files in os.walk(in_path):
         path_dir = path.split(os.sep)[-1]
@@ -240,6 +241,8 @@ def copytree(src, dst, symlinks=False, ignore=None):
             shutil.copy2(s, d)
 
 
+# ===============================================================================================
+
 def parse_metadata():
 
     # meta will use docs_meta as a base and adjust from there
@@ -307,7 +310,7 @@ if __name__ == "__main__":
     # Load tag file
     log("parsing tag file", 0, True)
     # generate symbol map from tag file
-    g.symbolsMap = generate_symbol_map()
+    g.symbolsMap = symbol_map.generate_map( PATHS["TAG_FILE_PATH"] )
 
     # copy files from htmlsrc/ to html/
     log("copying files", 0, True)
@@ -319,7 +322,7 @@ if __name__ == "__main__":
     log("processing files", 0, True)
     if not g.args.path: # no args; run all docs
         # process_html_dir(PATHS["HTML_SOURCE_PATH"], "html/")
-        process_dir("xml" + os.sep, "html" + os.sep)
+        process_dir( g.XML_ROOT_DIR + os.sep, g.HTML_ROOT_DIR + os.sep )
 
         # save search index to json file
         g.search_index.write()
@@ -335,7 +338,7 @@ if __name__ == "__main__":
             if inPath == "htmlsrc" + os.sep:
                 process_html_dir(PATHS["HTML_SOURCE_PATH"])
             else:
-                process_dir(inPath, "html" + os.sep)
+                process_dir(inPath, g.HTML_ROOT_DIR + os.sep)
             log("SUCCESSFULLY GENERATED YOUR FILES!", 0, True)
     else:
         log("Unknown usage", 1, True)

@@ -9,6 +9,7 @@ def get_parent_dir(directory):
 # static path vars
 BASE_PATH = get_parent_dir(os.path.dirname(os.path.realpath(__file__))) + os.sep
 HTML_ROOT_DIR = 'html'
+XML_ROOT_DIR = 'xml'
 PATHS = {
     'BASE_PATH': BASE_PATH,
     'HTML_ROOT_DIR': HTML_ROOT_DIR,
@@ -174,7 +175,6 @@ class State(object):
 
 # globals
 symbolsMap = None
-g_tag_xml = None
 search_index = SearchIndex()
 config = Config()
 state = State()

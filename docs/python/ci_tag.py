@@ -1,6 +1,9 @@
 import utils
+import bs4utils
 from utils import log
 from symbol_map import SymbolMap
+import globals as g
+from globals import PATHS
 
 # ===================================================================================================== CI Tag Functions
 
@@ -31,16 +34,16 @@ def replace_ci_tag(bs4, link, in_path, out_path):
     ref_obj = find_ci_tag_ref(link)
 
     if ref_obj:
-        ref_location = path_join(PATHS["HTML_DEST_PATH"], ref_obj.path)
-        new_link = gen_rel_link_tag(bs4, link.contents, ref_location, in_path, out_path)
+        ref_location = utils.path_join(PATHS["HTML_DEST_PATH"], ref_obj.path)
+        new_link = bs4utils.gen_rel_link_tag(bs4, link.contents, ref_location, in_path, out_path)
 
         # transfer tag classes to new tag
         tag_classes = link["class"] if link.has_attr("class") else None
         if tag_classes:
             for c in tag_classes:
-                add_class_to_tag(new_link, c)
+                bs4utils.add_class_to_tag(new_link, c)
 
-        add_class_to_tag(new_link, "ci")
+        bs4utils.add_class_to_tag(new_link, "ci")
         link.replace_with(new_link)
     else:
         log("Could not find replacement tag for ci tag: " + str(link), 1)
@@ -99,8 +102,8 @@ def process_ci_prefix_tag(bs4, tag, in_path):
 
         # generate bs4 from content and update links as reltive from the template path
         # could alternatively set the absolute paths of content, which would then be turned into rel paths later
-        new_bs4 = generate_bs4_from_string(prefix_content)
-        update_links(new_bs4, in_dir, in_path, PATHS["TEMPLATE_PATH"])
+        new_bs4 = bs4utils.generate_bs4_from_string(prefix_content)
+        utils.update_links(new_bs4, in_dir, in_path, PATHS["TEMPLATE_PATH"])
 
         # get updated body content and assign as prefix_content
         prefix_content = ""
@@ -132,6 +135,7 @@ def find_ci_tag_ref(link):
         searchstring = link.get('dox')
 
     ref_obj = None
+    
     is_function = searchstring.find("(") > -1 or link.get('kind') == 'function'
     if is_function:
         arg_string = searchstring[searchstring.find("("):]
