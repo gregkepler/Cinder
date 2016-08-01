@@ -4,17 +4,25 @@ from file_types import HtmlFileData
 import globals as g
 from globals import PATHS, config
 from bs4utils import *
-from utils import log, GuideConfig
+from utils import log, LinkData
 from ci_tag import process_ci_tag
+
+
+class DataObject(object):
+
+    def __init__(self):
+        self.template = None
+        # tags for search engine
+        self.search_tags = []
 
 
 def process_html_file(in_path, out_path):
     """ Parses an html file.
     - Adds template around the html
-    - Copy original css and js links into new hmtl
+    - Copy original css and js links into new html
     - Save html in destination dir
     """
-#    log_progress('Processing file: ' + str(in_path))
+    # log_progress('Processing file: ' + str(in_path))
     print 'Processing file: ' + str(in_path)
     # relative path in relation to the in_path (htmlsrc/)
     local_rel_path = os.path.relpath(in_path, PATHS["HTML_SOURCE_PATH"])
@@ -27,16 +35,13 @@ def process_html_file(in_path, out_path):
     if in_file_name.startswith("_"):
         return
 
+    data = DataObject()
+
     # get common data for the file
     file_data = HtmlFileData(in_path)
 
     # searchable by default
     is_searchable = True
-    # tags for search engine
-    search_tags = []
-
-    # selected section of the website
-    section = ""
 
     # parse guide config (if present in current directory)
     # this determines which function is used to generate dynamic page, which template to use, etc
@@ -44,7 +49,7 @@ def process_html_file(in_path, out_path):
     if config_data:
         # add search tags
         for k in config_data.keywords:
-            search_tags.append(k)
+            data.search_tags.append(k)
 
         # plug in subnav data
         file_data.pagenav = config_data.pagenav
@@ -52,6 +57,9 @@ def process_html_file(in_path, out_path):
     # get correct template for the type of file
     template = config.HTML_TEMPLATE
     body_class = "default"
+    # selected section of the website (to be determined based on directory name)
+    section = ""
+
     if in_path.find("htmlsrc" + os.sep + "index.html") > -1:
         template = config.HOME_TEMPLATE
         is_searchable = False
@@ -169,7 +177,7 @@ def process_html_file(in_path, out_path):
         # add tags from the meta keywords tag
         for meta_tag in orig_html.head.findAll(attrs={"name": "keywords"}):
             for keyword in meta_tag['content'].split(','):
-                search_tags.append(keyword.encode('utf-8').strip())
+                data.search_tags.append(keyword.encode('utf-8').strip())
 
         # look for any meta 'group' tags to tell us that it's part of a grpup that will need nav
         for meta_tag in orig_html.head.findAll(attrs={"name": "group"}):
@@ -183,15 +191,93 @@ def process_html_file(in_path, out_path):
     if in_path.find("_docs/") < 0:
         if is_searchable:
             link_path = gen_rel_link_tag(bs4, "", out_path, PATHS["HTML_SOURCE_PATH"], PATHS["HTML_DEST_PATH"])["href"]
-            g.search_index.add(bs4, link_path, file_data.kind_explicit, search_tags)
+            g.search_index.add(bs4, link_path, file_data.kind_explicit, data.search_tags)
 
         g.state.add_html_file(file_data)
         file_data.path = out_path
         utils.write_html(bs4, out_path)
 
 
+class GuideConfig(object):
+
+    def __init__(self, config_json, path, file_name):
+
+        config_data = config_json["data"]
+
+        # parse subnav
+        subnav_list = []
+        self.order = None
+        if config_data["nav"]:
+            for index, nav in enumerate(config_data["nav"]):
+                subnav_obj = {}
+                link_data = LinkData(os.path.join(path, nav["link"]), nav["label"])
+                subnav = None
+
+                # find order of file in group
+                if re.match(file_name, nav["link"]):
+                    self.order = index
+
+                    # find subnav for the matched/current page if it has it
+                    if nav.get("pagenav"):
+                        subnav = self.parse_subnav(path, nav["pagenav"])
+
+                subnav_obj["link_data"] = link_data
+                subnav_obj["length"] = 0
+                if subnav:
+                    subnav_obj["length"] = len(subnav)
+                    subnav_obj["subnav"] = subnav
+
+                subnav_list.append(subnav_obj)
+        self.pagenav = subnav_list
+
+        # add keywords
+        keywords = []
+        metadata = config_data["metadata"]
+        if metadata:
+            if metadata["keywords"]:
+                for k in metadata["keywords"]:
+                    keywords.append(k)
+        self.keywords = keywords
+
+        # add seealso ci links
+        see_also = config_data["seealso"]
+        self.see_also_label = ""
+        self.see_also_tags = []
+        if see_also:
+            self.see_also_label = config_data["seealso"]["label"]
+            for ci in config_data["seealso"]["dox"]:
+                self.see_also_tags.append(ci)
+
+    # recursively parse subnav
+    def parse_subnav(self, path, subnav):
+        nav = []
+        for menu in subnav:
+            subnav_obj = {}
+            link_data = LinkData(os.path.join(path, menu["link"]), menu["label"])
+            local_subnav = None
+            if menu.get("subnav"):
+                local_subnav = self.parse_subnav(path, menu["subnav"])
+
+            subnav_obj["link_data"] = link_data
+            subnav_obj["length"] = 0
+            if local_subnav:
+                subnav_obj["length"] = len(local_subnav)
+                subnav_obj["subnav"] = local_subnav
+
+            nav.append(subnav_obj);
+        return nav
+
+
 def parse_config(path, file_name):
-    # if "config.json" exists in path directory
+    """
+    Parses a config file if present
+    Args:
+        path: directory of the html file
+        file_name: name of html file
+
+    Returns: GuideConfig object
+
+    """
     config_path = os.path.join(path, "config.json")
     if os.path.exists(config_path):
         # load and turn into GuideConfig object
