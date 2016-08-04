@@ -34,7 +34,7 @@ import stat
 import argparse
 
 # Third party in libs folder
-sys.path.append("libs/")
+sys.path.append("python/libs/")
 sys.path.append("python/")
 
 import utils as utils

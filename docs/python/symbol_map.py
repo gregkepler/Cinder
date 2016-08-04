@@ -5,6 +5,7 @@ from bs4utils import *
 from bs4 import BeautifulSoup
 import xml.etree.ElementTree as ET
 import re
+from difflib import SequenceMatcher as SM
 
 def generate_map(tag_path):
     """
@@ -522,14 +523,14 @@ class SymbolMap(object):
         # find parent class first
         class_parts = name.split("(")[0].split("::")
         class_name = "::".join(class_parts[:-1])
-        ref_obj = g_symbolMap.find_class(class_name)
+        ref_obj = globals.symbolsMap.find_class(class_name)
 
         # if we can't find a matching function, try a namespace
         if ref_obj is None:
             ns_search = class_name
             if class_name == "":
                 ns_search = "cinder"
-            ref_obj = g_symbolMap.find_namespace(ns_search)
+            ref_obj = globals.symbolsMap.find_namespace(ns_search)
 
         # iterate through class/namespace functions
         fn_list = []
@@ -544,7 +545,7 @@ class SymbolMap(object):
             ns_search = class_name
             if class_name == "":
                 ns_search = "cinder::app"
-            ref_obj = g_symbolMap.find_namespace(ns_search)
+            ref_obj = globals.symbolsMap.find_namespace(ns_search)
 
             # iterate through class/namespace functions
             if ref_obj:
@@ -626,7 +627,7 @@ class SymbolMap(object):
         #     # find parent class first
         #     ns_parts = name.split("::")
         #     class_name = "::".join(ns_parts[:-1])
-        #     class_obj = g_symbolMap.find_class(class_name)
+        #     class_obj = globals.symbolsMap.find_class(class_name)
 
         # same key as name
         if searchname in self.enums.keys():

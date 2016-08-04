@@ -12,6 +12,7 @@ from posixpath import join as urljoin
 from bs4 import BeautifulSoup, Tag
 # from pystache.renderer import Renderer, Loader
 # from globals import args
+from difflib import SequenceMatcher as SM
 
 
 # =============================================================================================== Logging

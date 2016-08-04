@@ -21,6 +21,9 @@ class FileData(object):
         self.path = ""
         self.kind = ""
         self.kind_explicit = ""
+        self.in_path = ""
+        self.out_path = ""
+        self.is_searchable = True
 
     def get_content(self):
         content = {
@@ -279,6 +282,7 @@ class HtmlFileData(FileData):
 
         self.kind = "html"
         self.kind_explicit = self.kind
+        self.in_path = in_path
         if in_path.find("guides"+os.sep) > -1:
             self.kind_explicit = "guide"
         if in_path.find("reference"+os.sep) > -1:
