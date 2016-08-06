@@ -9,10 +9,11 @@ from utils import log
 
 class FileData(object):
 
-    def __init__(self, tree):
+    def __init__(self, tree, in_path):
 
         self.tree = tree  # xml file that describes the page
         self.bs4 = None  # html file of the actual page
+        self.in_path = in_path
 
         self.name = ""
         self.title = ""
@@ -21,9 +22,10 @@ class FileData(object):
         self.path = ""
         self.kind = ""
         self.kind_explicit = ""
-        self.in_path = ""
         self.out_path = ""
         self.is_searchable = True
+        self.body_class = ""
+        self.section = ""
 
     def get_content(self):
         content = {
@@ -36,8 +38,8 @@ class FileData(object):
 
 class ClassFileData(FileData):
 
-    def __init__(self, tree):
-        FileData.__init__(self, tree)
+    def __init__(self, tree, in_path):
+        FileData.__init__(self, tree, in_path)
         self.description = None
         self.is_template = False
         self.template_def_name = ""
@@ -156,8 +158,8 @@ class ClassFileData(FileData):
 
 class NamespaceFileData(FileData):
 
-    def __init__(self, tree):
-        FileData.__init__(self, tree)
+    def __init__(self, tree, in_path):
+        FileData.__init__(self, tree, in_path)
 
         # stripped name (w/o namespace)
         self.compoundName = str(utils.find_compound_name(tree))
@@ -221,8 +223,8 @@ class NamespaceFileData(FileData):
 
 class GroupFileData(FileData):
 
-    def __init__(self, tree, module_config):
-        FileData.__init__(self, tree)
+    def __init__(self, tree, in_path, module_config):
+        FileData.__init__(self, tree, in_path)
         self.description = ""
         self.prefix = ""
         self.typedefs = []
@@ -274,7 +276,7 @@ class GroupFileData(FileData):
 class HtmlFileData(FileData):
 
     def __init__(self, in_path):
-        FileData.__init__(self, None)
+        FileData.__init__(self, None, in_path)
 
         self.html_content = ""
         self.group = None
@@ -282,10 +284,10 @@ class HtmlFileData(FileData):
 
         self.kind = "html"
         self.kind_explicit = self.kind
-        self.in_path = in_path
-        if in_path.find("guides"+os.sep) > -1:
+
+        if self.in_path.find("guides"+os.sep) > -1:
             self.kind_explicit = "guide"
-        if in_path.find("reference"+os.sep) > -1:
+        if self.in_path.find("reference"+os.sep) > -1:
             self.kind_explicit = "reference"
 
     def get_content(self):

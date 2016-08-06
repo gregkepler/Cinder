@@ -3,6 +3,7 @@ import os
 import sys
 import re
 import codecs
+import shutil
 import bs4utils
 import xml.etree.ElementTree as ET
 import globals as g
@@ -30,6 +31,7 @@ def log(message, level=0, force=False):
             print str(message)
 
         print("\r    *** " + message_prefix + ": [ " + message + " ] ***")
+
 
 def log_progress(message):
     sys.stdout.write('\r' + str(message))
@@ -388,9 +390,7 @@ def update_links(html, template_path, src_path, save_path):
     for iframe in html.find_all("iframe"):
         if iframe.has_attr("src"):
 
-            print "----"
             link_src = iframe["src"]
-            print posixpath.isabs(link_src)
             
             if link_src.startswith('javascript') or link_src.startswith('http'):
                 print "RETURN NOW BUDDY"
@@ -401,8 +401,6 @@ def update_links(html, template_path, src_path, save_path):
                 # if a relative link
                 if not posixpath.isabs(link_src):
                     link_src = "/" + link_src
-            print link_src
-            
 
             # base dir
             src_base = src_path.split(PATHS["BASE_PATH"])[1].split(os.sep)[0]
@@ -416,12 +414,6 @@ def update_links(html, template_path, src_path, save_path):
             src_file = link_src
             dest_file = link_src.replace(src_base, dest_base)
 
-            
-            print iframe
-            print src_file
-            print dest_file
-            print dest_base
-            print "----"
 
             try:
                 # copy file as long as the source and destination is not the same
@@ -493,7 +485,7 @@ def parse_xml(in_path):
     """
     Opens the xml file and turns it into an ETree
     :param in_path:
-    :return:
+    :return: an ETree Object consisting of all the XML data
     """
 
     tree = None

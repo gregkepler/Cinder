@@ -2,6 +2,7 @@ import os
 from bs4 import Comment, NavigableString, Tag, BeautifulSoup
 # from utils import relative_url, path_join
 import utils
+# from utils import log
 import globals as g
 from globals import PATHS
 from pystache.renderer import Renderer, Loader
@@ -378,7 +379,7 @@ def define_link_tag(tag, attrib):
         href = file_name + "#" + anchor
 
     if href is None:
-        log("DEFINING LINK TAG: " + str(tag), 1)
+        utils.log("DEFINING LINK TAG: " + str(tag), 1)
     else:
         tag["href"] = href
 
@@ -570,13 +571,13 @@ def generate_bs4(file_path):
         # wrap in body tag if none exists
         if new_content.find("<body") < 0:
             new_content = "<body>" + new_content + "</body>"
-            log("No body tag found in file: " + file_path)
+            utils.log("No body tag found in file: " + file_path)
 
         bs4 = BeautifulSoup(new_content)
         return bs4
 
     except Exception as e:
-        log(e.message, 2)
+        utils.log(e.message, 2)
         return None
 
 

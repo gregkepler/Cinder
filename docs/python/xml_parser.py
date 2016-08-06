@@ -1,14 +1,13 @@
 import os
+from bs4 import BeautifulSoup
 from file_types import ClassFileData, NamespaceFileData, GroupFileData
 import utils
 from utils import log, log_progress, LinkData
 import bs4utils
 import globals as g
 from globals import PATHS, config
-from bs4 import BeautifulSoup
 import ci_tag
 
-# ============================================================================================ File Processing Functions
 
 def process_xml_file_definition(in_path, out_path, file_type):
     """
@@ -19,7 +18,7 @@ def process_xml_file_definition(in_path, out_path, file_type):
     :return:
     """
 
-    # we dont like files that start with '_'
+    # we don't like files that start with '_'
     if os.path.basename(in_path).startswith("_"):
         return
 
@@ -29,82 +28,44 @@ def process_xml_file_definition(in_path, out_path, file_type):
     if tree is None:
         return
 
+    # Determine type of file and generate content --------------------------------------------------
+
     if file_type == "class":
         if any(in_path.find(blacklisted) > -1 for blacklisted in config.CLASS_LIST_BLACKLIST):
             log("Skipping file | Class " + in_path + " blacklisted", 0)
             return
 
         html_template = config.CLASS_TEMPLATE
-        file_data = fill_class_content(tree)
-        section = "classes"
-        body_class = "classes"
+        file_data = fill_class_content(tree, in_path)
+        file_data.section = "classes"
+        file_data.body_class = "classes"
 
     elif file_type == "namespace":
         html_template = config.NAMESPACE_TEMPLATE
-        file_data = fill_namespace_content(tree)
+        file_data = fill_namespace_content(tree, in_path)
 
         if not file_data:
             return
 
-        section = "namespaces"
-        body_class = "namespaces"
+        file_data.section = "namespaces"
+        file_data.body_class = "namespaces"
 
     elif file_type == "module":
         html_template = config.GROUP_TEMPLATE
-        file_data = fill_group_content(tree, config.GLM_MODULE_CONFIG)
-        section = "reference"
-        body_class = "reference"
+        file_data = fill_group_content(tree, in_path, config.GLM_MODULE_CONFIG)
+        file_data.section = "reference"
+        file_data.body_class = "reference"
     else:
         log("Skipping " + in_path, 1)
         return
 
     log_progress('Processing file: ' + str(in_path))
 
-    # Generate the html file from the template and inject content
-    file_content = file_data.get_content()
-    bs4 = bs4utils.render_template(html_template, file_content)
-    content_dict = {
-        "page_title": file_content["title"],
-        "main_content": bs4utils.get_body_content(bs4),
-        "body_class": body_class,
-        "section_namespace": "cinder",
-        str("section_" + section): "true"}
-    # append file meta
-    content_dict.update(g.meta.copy())
+    # Generate the html file from the template and inject content ----------------------------------
+    bs4 = render_file(file_data, html_template)
 
-    # render within main template
-    bs4 = bs4utils.render_template(os.path.join(PATHS["TEMPLATE_PATH"], "master-template.mustache"), content_dict)
-    # make sure all links are absolute
-    utils.update_links_abs(bs4, PATHS["TEMPLATE_PATH"])
-
-    if not bs4:
-        log("Skipping class due to something nasty. Bother Greg and try again some other time. Error rendering: " + in_path, 2)
-        return
-
-    # print output
-    # update links in the template
-    utils.update_links(bs4, PATHS["TEMPLATE_PATH"] + "htmlContentTemplate.html", PATHS["TEMPLATE_PATH"], out_path)
-
-    # replace any code chunks with <pre> tags, which is not possible on initial creation
-    bs4utils.replace_code_chunks(bs4)
-
-    # link up all ci tags
-    for tag in bs4.find_all('ci'):
-        ci_tag.process_ci_tag(bs4, tag, in_path, out_path)
-
-    # add to search index
-    link_path = bs4utils.gen_rel_link_tag(bs4, "", out_path, PATHS["HTML_SOURCE_PATH"], PATHS["HTML_DEST_PATH"])["href"]
-    g.search_index.add(bs4, link_path, file_data.kind, file_data.search_tags)
-
-    # deactivate invalid relative links
-    for link in bs4.find_all("a"):
-        if link.has_attr("href") and link["href"].startswith("_"):
-            # replace <a> with <span>
-            dead_tag = bs4utils.gen_tag(bs4, "span", None, link.string)
-            link.replace_with(dead_tag)
-
-    # write the file
-    utils.write_html(bs4, out_path)
+    # Clean up and write the file
+    finalize_file(bs4, file_data, out_path)
 
 
 def parse_namespaces(tree, sections):
@@ -193,7 +154,7 @@ def parse_vars(bs4, tree, sections):
     return variables
 
 
-def fill_class_content(tree):
+def fill_class_content(tree, in_path):
     """
     Populates the class content object with data
     :param tree:
@@ -201,7 +162,7 @@ def fill_class_content(tree):
     """
 
     bs4 = BeautifulSoup()
-    file_data = ClassFileData(tree)
+    file_data = ClassFileData(tree, in_path)
 
     include_file = ""
     include_path = ""
@@ -379,7 +340,7 @@ def fill_class_content(tree):
     return file_data
 
 
-def fill_namespace_content(tree):
+def fill_namespace_content(tree, in_path):
 
     bs4 = BeautifulSoup()
 
@@ -387,7 +348,7 @@ def fill_namespace_content(tree):
         return
 
     # get common data for the file
-    file_data = NamespaceFileData(tree)
+    file_data = NamespaceFileData(tree, in_path)
     ns_def = g.symbolsMap.find_namespace(file_data.name)
 
     if ns_def:
@@ -447,9 +408,9 @@ def fill_namespace_content(tree):
     return file_data
 
 
-def fill_group_content(tree, module_config):
+def fill_group_content(tree, in_path, module_config):
     bs4 = BeautifulSoup()
-    file_data = GroupFileData(tree, module_config)
+    file_data = GroupFileData(tree, in_path, module_config)
 
     group_name = file_data.name
     group_def = g.symbolsMap.find_group(group_name)
@@ -502,7 +463,8 @@ def fill_group_content(tree, module_config):
     # public member Functions --------------------------- #
     public_fns = []
     public_static_fns = []
-    for memberFn in tree.findall(r'compounddef/sectiondef/memberdef[@kind="function"][@prot="public"]'):
+    memberFns = tree.findall(r'compounddef/sectiondef/memberdef[@kind="function"][@prot="public"]')
+    for memberFn in memberFns:
 
         function_obj = utils.parse_function(bs4, memberFn, group_name)
         is_static = memberFn.attrib["static"]
@@ -519,3 +481,67 @@ def fill_group_content(tree, module_config):
         file_data.search_tags = group_def.tags
 
     return file_data
+
+
+def render_file(file_data, template):
+    file_content = file_data.get_content()
+    bs4 = bs4utils.render_template(template, file_content)
+    content_dict = {
+        "page_title": file_content["title"],
+        "main_content": bs4utils.get_body_content(bs4),
+        "body_class": file_data.body_class,
+        "section_namespace": "cinder",
+        str("section_" + file_data.section): "true"}
+    # append file meta
+    content_dict.update(g.meta.copy())
+
+    # render within main template
+    bs4 = bs4utils.render_template(os.path.join(PATHS["TEMPLATE_PATH"], "master-template.mustache"),
+                                   content_dict)
+    # make sure all links are absolute
+    utils.update_links_abs(bs4, PATHS["TEMPLATE_PATH"])
+
+    if not bs4:
+        log("Skipping class due to something nasty. Bother Greg and try again some other time. "
+            "Error rendering: " + file_data.in_path, 2)
+        return None
+
+    return bs4
+
+
+def finalize_file(bs4, file_data, out_path):
+    """
+    Does any finalization that a file may need including replacing ci tags,
+    adding the file to the search index, and writing the file.
+    Args:
+        bs4: the Beautiful Soup object containing all of the final content
+        file_data: The data object that has config stuff
+
+    Returns:
+
+    """
+    # update links in the template
+    utils.update_links(bs4, PATHS["TEMPLATE_PATH"] + "htmlContentTemplate.html",
+                       PATHS["TEMPLATE_PATH"], out_path)
+
+    # replace any code chunks with <pre> tags, which is not possible on initial creation
+    bs4utils.replace_code_chunks(bs4)
+
+    # link up all ci tags
+    for tag in bs4.find_all('ci'):
+        ci_tag.process_ci_tag(bs4, tag, file_data.in_path, out_path)
+
+    # add to search index
+    link_path = bs4utils.gen_rel_link_tag(bs4, "", out_path, PATHS["HTML_SOURCE_PATH"],
+                                          PATHS["HTML_DEST_PATH"])["href"]
+    g.search_index.add(bs4, link_path, file_data.kind, file_data.search_tags)
+
+    # deactivate invalid relative links
+    for link in bs4.find_all("a"):
+        if link.has_attr("href") and link["href"].startswith("_"):
+            # replace <a> with <span>
+            dead_tag = bs4utils.gen_tag(bs4, "span", None, link.string)
+            link.replace_with(dead_tag)
+
+    # write the file
+    utils.write_html(bs4, out_path)

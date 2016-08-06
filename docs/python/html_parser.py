@@ -1,6 +1,5 @@
 import json
 import re
-# from bs4 import BeautifulSoup
 from file_types import HtmlFileData
 from globals import PATHS, config
 from bs4utils import *
@@ -14,6 +13,9 @@ def process_html_file(in_path, out_path):
     - Copy original css and js links into new html
     - Save html in destination dir
     """
+
+    # Define paths ---------------------------------------------------------------------------------
+
     # log_progress('Processing file: ' + str(in_path))
     print 'Processing file: ' + str(in_path)
     # relative path in relation to the in_path (htmlsrc/)
@@ -23,27 +25,28 @@ def process_html_file(in_path, out_path):
     # file name
     in_file_name = os.path.basename(in_path)
 
-    # skip if it starts with "_", which means that it's not a first class citizen file and is supplemental
+    # Skip if it starts with "_", which means that it's not a first class citizen file and is supplemental
     if in_file_name.startswith("_"):
         return
 
-    # get common data for the file
+    # Get common data for the file -----------------------------------------------------------------
+
     file_data = HtmlFileData(in_path)
     file_data.out_path = out_path
     file_data.search_tags = []
 
-    # parse guide config (if present in current directory)
+    # Parse guide config (if present in current directory)
     # this determines which function is used to generate dynamic page, which template to use, etc
     config_data = parse_config(in_dir, in_file_name)
     if config_data:
-        # add search tags
+        # add some search tags
         for k in config_data.keywords:
             file_data.search_tags.append(k)
 
         # plug in subnav data
         file_data.pagenav = config_data.pagenav
 
-    # get correct template for the type of file
+    # Get correct template for the type of file
     template = config.HTML_TEMPLATE
     body_class = "default"
     # selected section of the website (to be determined based on directory name)
@@ -63,8 +66,7 @@ def process_html_file(in_path, out_path):
         body_class = "guide"
         section = "guides"
 
-
-    # fill content ----------------------------------------
+    # Fill content ---------------------------------------------------------------------------------
 
     # get source file body content
     orig_html = generate_bs4(in_path)
@@ -76,11 +78,12 @@ def process_html_file(in_path, out_path):
 
     orig_links = []
 
-    # get title
     if orig_html.head:
+        # get title
         if orig_html.head.title:
             file_data.title = orig_html.head.title.text
 
+        # get stylesheet links
         for x in orig_html.findAll('link', rel="stylesheet"):
             orig_links.append(x.extract())
 
@@ -109,15 +112,13 @@ def process_html_file(in_path, out_path):
     file_data.body_class = body_class
     file_data.section = section
 
+    # Render content in template and adjust ci tags and meta data ----------------------------------
     bs4 = render_file(file_data, template)
-
-    # get list of all the css and js links in the new bs4
-    link_list = bs4.head.find_all("link")
-    script_list = bs4.body.find_all("script")
 
     # copy any css paths that may be in the original html and paste into new file
     for link in orig_links:
         # do not add duplicates
+        link_list = bs4.head.find_all("link")
         if any(link_item["href"] == link["href"] for link_item in link_list):
             continue
 
@@ -127,12 +128,14 @@ def process_html_file(in_path, out_path):
     # append original scripts to the end
     for script in orig_scripts:
         # do not add duplicates
+        script_list = bs4.body.find_all("script")
         if script.has_attr("src") and any(script_item.has_attr("src") and script_item["src"] == script["src"] for script_item in script_list):
             continue
         if bs4.body:
             bs4.body.append(script)
 
     if orig_html.head:
+        # Find all ci tags and add them to new file
         if bs4.head:
             for d in orig_html.head.find_all("ci"):
                 bs4.head.append(d)
@@ -154,7 +157,7 @@ def process_html_file(in_path, out_path):
             for keyword in meta_tag['content'].split(','):
                 file_data.search_tags.append(keyword.encode('utf-8').strip())
 
-        # look for any meta 'group' tags to tell us that it's part of a grpup that will need nav
+        # look for any meta 'group' tags to tell us that it's part of a group that will need nav
         for meta_tag in orig_html.head.findAll(attrs={"name": "group"}):
             if meta_tag['content']:
                 file_data.group = meta_tag['content']
@@ -163,21 +166,43 @@ def process_html_file(in_path, out_path):
 
 
 def finalize_file(bs4, file_data):
+    """
+    Does any finalization that a file may need including replacing ci tags,
+    adding the file to the search index, and writing the file.
+    Args:
+        bs4: the Beautiful Soup object containing all of the final content
+        file_data: The data object that has config stuff
+
+    Returns:
+
+    """
     # link up all ci tags
     for tag in bs4.find_all('ci'):
         process_ci_tag(bs4, tag, file_data.in_path, file_data.out_path)
 
     if file_data.in_path.find("_docs/") < 0:
+        # add search tags to search index
         if file_data.is_searchable:
             link_path = gen_rel_link_tag(bs4, "", file_data.out_path, PATHS["HTML_SOURCE_PATH"], PATHS["HTML_DEST_PATH"])["href"]
             g.search_index.add(bs4, link_path, file_data.kind_explicit, file_data.search_tags)
 
         g.state.add_html_file(file_data)
         file_data.path = file_data.out_path
+
+        # write file
         utils.write_html(bs4, file_data.out_path)
 
 
 def render_file(file_data, template):
+    """
+    Renders a file using the provided template.
+    Args:
+        file_data: data containing all of the content data and config
+        template: template to be used for plugging content in
+
+    Returns: a bs4 object
+
+    """
     # render file template
     file_content = file_data.get_content()
     bs4 = render_template(template, file_content)
@@ -226,8 +251,12 @@ def parse_config(path, file_name):
         return None
 
 
-
 class GuideConfig(object):
+    """
+    Config for a guide page or set of guide pages. This allows for the
+    batching of a bunch of configurations for multiple page guides.
+    Guides may have the same sub nav, metadata keywords, and ci tags.
+    """
 
     def __init__(self, config_json, path, file_name):
 
@@ -293,5 +322,5 @@ class GuideConfig(object):
                 subnav_obj["length"] = len(local_subnav)
                 subnav_obj["subnav"] = local_subnav
 
-            nav.append(subnav_obj);
+            nav.append(subnav_obj)
         return nav
