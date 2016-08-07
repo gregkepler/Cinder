@@ -35,7 +35,7 @@ def replace_ci_tag(bs4, link, in_path, out_path):
 
     if ref_obj:
         ref_location = utils.path_join(PATHS["HTML_DEST_PATH"], ref_obj.path)
-        new_link = bs4utils.gen_rel_link_tag(bs4, link.contents, ref_location, in_path, out_path)
+        new_link = bs4utils.gen_rel_link_tag(bs4, link.contents, ref_location, out_path)
 
         # transfer tag classes to new tag
         tag_classes = link["class"] if link.has_attr("class") else None

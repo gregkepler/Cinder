@@ -39,17 +39,27 @@ def generate_namespace_nav():
 
 
 def gen_anchor_tag(bs4, anchor_name):
+    """
+    Generates an anchor tag
+    Args:
+        bs4:            beautiful soup instance
+        anchor_name:    anchor name
+
+    Returns:
+
+    """
     anchor = gen_tag(bs4, "a")
     anchor["name"] = anchor_name
     return anchor
 
 
 def gen_tag(bs4, tag_type, classes=None, contents=None):
-    """ Generates a new html element and optionally adds classes and content
+    """
+    Generates a new html element and optionally adds classes and content
 
     Args:
         bs4:        beautiful soup
-        tagType:    html tag/element (p, a, em, etc)
+        tag_type:    html tag/element (p, a, em, etc)
         classes:    array of strings that you want as classes for the element
         contents:   any content that you want to populate your tag with, if known
     """
@@ -70,28 +80,41 @@ def gen_tag(bs4, tag_type, classes=None, contents=None):
     return new_tag
 
 
-def gen_link_tag(bs4, text, link, target = "_self"):
+def gen_link_tag(bs4, text, link, target="_self"):
+    """
+    Generates a link/anchor tag
+    Args:
+        bs4:    beautiful soup
+        text:   link text
+        link:   link url
+        target: url target (_self by default)
+
+    Returns: an anchor tag
+
+    """
     link_tag = gen_tag(bs4, "a", [], text)
     define_link_tag(link_tag, {"href": link})
     link_tag["target"] = target
     return link_tag
 
 
-def gen_rel_link_tag(bs4, text, link, src_dir, dest_dir):
+def gen_rel_link_tag(bs4, text, link, from_location):
     """
-    Generates a link tag that was relative to the source directory, but should now be relative to the destination directory
-    :param bs4: beautifulsoup instance
-    :param text: text of link
-    :param link: relative link
-    :param src_dir: original source directory
-    :param dest_dir: destination source directory
-    :return: the link tag
+    Generates a link tag that was relative to the source directory, but should now
+    be relative to the source directory
+    Args:
+        bs4:            beautiful soup instance
+        text:           text of link
+        link:           absolute link that we want to make relative
+        from_location:  the relative location from which to create a link from
+
+    Returns: the link tag
+
     """
 
     # make sure they are dirs
-    src_dir = os.path.dirname(src_dir) + os.sep
-    dest_dir = os.path.dirname(dest_dir) + os.sep
-    new_link = utils.relative_url(dest_dir, link)
+    from_dir = os.path.dirname(from_location) + os.sep
+    new_link = utils.relative_url(from_dir, link)
     link_tag = gen_link_tag(bs4, text, new_link)
     return link_tag
 

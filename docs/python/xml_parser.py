@@ -157,7 +157,8 @@ def parse_vars(bs4, tree, sections):
 def fill_class_content(tree, in_path):
     """
     Populates the class content object with data
-    :param tree:
+    :param tree: xml tree with class data
+    :param in_path: path of the xml
     :return:
     """
 
@@ -329,7 +330,8 @@ def fill_class_content(tree, in_path):
 
         # link up friend, if class exists
         if friend_class:
-            friend_link = bs4utils.gen_rel_link_tag(bs4, friend_class.name, friend_class.path, PATHS["TEMPLATE_PATH"], PATHS["HTML_DEST_PATH"])
+            friend_location = utils.path_join(PATHS["HTML_DEST_PATH"], friend_class.path)
+            friend_link = bs4utils.gen_rel_link_tag(bs4, friend_class.name, friend_location, PATHS["HTML_DEST_PATH"])
             member_obj["definition"]["name"] = str(friend_link)
         friends.append(member_obj)
     file_data.friends = friends
@@ -341,7 +343,12 @@ def fill_class_content(tree, in_path):
 
 
 def fill_namespace_content(tree, in_path):
-
+    """
+    Populates the namespace content object with data
+    :param tree: xml tree with namespace data
+    :param in_path: path of the xml
+    :return:
+    """
     bs4 = BeautifulSoup()
 
     if tree is None:
@@ -409,6 +416,14 @@ def fill_namespace_content(tree, in_path):
 
 
 def fill_group_content(tree, in_path, module_config):
+    """
+    Populates the group content object with data
+    :param tree: xml tree with group data
+    :param in_path: path of the xml
+    :param module_config: configuration for this group/module
+    :return:
+    """
+
     bs4 = BeautifulSoup()
     file_data = GroupFileData(tree, in_path, module_config)
 
@@ -484,6 +499,15 @@ def fill_group_content(tree, in_path, module_config):
 
 
 def render_file(file_data, template):
+    """
+    Plugs all of the file content into the specified template
+    Args:
+        file_data: data containing content
+        template: mustache template for the content
+
+    Returns:
+
+    """
     file_content = file_data.get_content()
     bs4 = bs4utils.render_template(template, file_content)
     content_dict = {
@@ -532,8 +556,7 @@ def finalize_file(bs4, file_data, out_path):
         ci_tag.process_ci_tag(bs4, tag, file_data.in_path, out_path)
 
     # add to search index
-    link_path = bs4utils.gen_rel_link_tag(bs4, "", out_path, PATHS["HTML_SOURCE_PATH"],
-                                          PATHS["HTML_DEST_PATH"])["href"]
+    link_path = bs4utils.gen_rel_link_tag(bs4, "", out_path, PATHS["HTML_DEST_PATH"])["href"]
     g.search_index.add(bs4, link_path, file_data.kind, file_data.search_tags)
 
     # deactivate invalid relative links

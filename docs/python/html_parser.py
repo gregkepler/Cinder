@@ -183,7 +183,7 @@ def finalize_file(bs4, file_data):
     if file_data.in_path.find("_docs/") < 0:
         # add search tags to search index
         if file_data.is_searchable:
-            link_path = gen_rel_link_tag(bs4, "", file_data.out_path, PATHS["HTML_SOURCE_PATH"], PATHS["HTML_DEST_PATH"])["href"]
+            link_path = gen_rel_link_tag(bs4, "", file_data.out_path, PATHS["HTML_DEST_PATH"])["href"]
             g.search_index.add(bs4, link_path, file_data.kind_explicit, file_data.search_tags)
 
         g.state.add_html_file(file_data)

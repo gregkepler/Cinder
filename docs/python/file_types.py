@@ -2,9 +2,6 @@ import os
 import globals as g
 from globals import PATHS
 import utils
-from utils import log
-
-# ====================================================================================================== FILE DATA TYPES
 
 
 class FileData(object):
