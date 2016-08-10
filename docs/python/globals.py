@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from search_index import SearchIndex
 
+
 def get_parent_dir(directory):
     import os
     return os.path.dirname(directory)
@@ -29,6 +30,7 @@ PATHS = {
 # TEMPLATE_PATH = BASE_PATH + 'htmlsrc' + os.sep + "_templates" + os.sep
 # PARENT_DIR = BASE_PATH.split(os.sep + 'docs')[0]
 # TAG_FILE_PATH = "doxygen" + os.sep + "cinder.tag"
+
 
 # various config settings
 class Config(object):
@@ -147,12 +149,12 @@ class Config(object):
         return None
 
     def is_section_whitelisted(self, sections, section_name):
-        '''
+        """
         Is the section of the page whitelisted
         :param sections: list page section configs
         :param section_name: name to check agains
         :return:
-        '''
+        """
         if sections:
             for section in sections:
                 if section["name"] == section_name:
@@ -188,4 +190,3 @@ meta = {
     "creation_date": str(datetime.today().date()),
     "docs_root": ""
 }
-# logger = None

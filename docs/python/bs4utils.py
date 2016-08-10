@@ -19,23 +19,7 @@ tagDictionary = {
     "para": "p"
 }
 
-# =============================================================================================== HTML generation functions
-
-def generate_namespace_nav():
-    """
-    Creates a div filled with a list of namespace links
-    :param bs4: The Beautiful soup instance used for dom manipulation
-    :return: a new div that contains the navigation tree
-    """
-    bs4 = BeautifulSoup()
-    namespaces = g.symbolsMap.get_whitelisted_namespaces()
-
-    ul = gen_tag(bs4, "ul")
-    add_class_to_tag(ul, "css-treeview")
-    ul["id"] = "namespace-nav"
-
-    iterate_namespace(bs4, namespaces, ul, 0, "")
-    return ul
+# ======================================================================== HTML generation functions
 
 
 def gen_anchor_tag(bs4, anchor_name):
@@ -119,6 +103,30 @@ def gen_rel_link_tag(bs4, text, link, from_location):
     return link_tag
 
 
+def generate_namespace_nav():
+    """
+    Creates a div filled with a list of namespace links
+    Returns: a new div that contains the navigation tree
+
+    """
+    bs4 = BeautifulSoup()
+    namespaces = g.symbolsMap.get_whitelisted_namespaces()
+
+    ul = gen_tag(bs4, "ul")
+    add_class_to_tag(ul, "css-treeview")
+    ul["id"] = "namespace-nav"
+
+    iterate_namespace(bs4, namespaces, ul, 0, "")
+    return ul
+
+
+# ================================================================================ General utilities
+
+
+def add_class_to_tag(tag, class_name):
+    tag["class"] = tag.get("class", []) + [class_name]
+
+
 def replace_element(bs4, element, replacement_tag):
     """
     Replaces an html element with another one, keeping the text contents.
@@ -136,6 +144,24 @@ def replace_element(bs4, element, replacement_tag):
     element.replace_with(replacement)
 
 
+# clone an element
+# from: http://stackoverflow.com/questions/23057631/clone-element-with-beautifulsoup/23058678#23058678
+def clone(el):
+    if isinstance(el, NavigableString):
+        return type(el)(el)
+
+    tag_copy = Tag(None, el.builder, el.name, el.namespace, el.nsprefix)
+    # work around bug where there is no builder set
+    # https://bugs.launchpad.net/beautifulsoup/+bug/1307471
+    tag_copy.attrs = dict(el.attrs)
+    tag_copy.index = el.index
+    for attr in ('can_be_empty_element', 'hidden'):
+        setattr(tag_copy, attr, getattr(el, attr))
+    for child in el.contents:
+        tag_copy.append(clone(child))
+    return tag_copy
+
+
 def get_body_content(bs4):
     return_str = ""
     for content in bs4.body.contents:
@@ -146,6 +172,21 @@ def get_body_content(bs4):
         else:
             return_str += content_str
     return return_str
+
+
+def has_ancestor(namespaces, compare_namespace):
+    compare_prefix = "::".join(compare_namespace.split("::")[0])
+    # hasAncestor = False
+    for ns in namespaces:
+        namespace = ns.name
+        prefix = "::".join(namespace.split("::")[0])
+        if prefix == compare_prefix and compare_namespace != namespace:
+            return True
+
+    return False
+
+
+# ================================================================================
 
 
 def markup_brief_description(bs4, tree, description_el=None):
@@ -176,10 +217,6 @@ def markup_description(bs4, tree):
             iterate_markup(bs4, desc, description_el)
 
     return description_el
-
-
-def add_class_to_tag(tag, class_name):
-    tag["class"] = tag.get("class", []) + [class_name]
 
 
 def iterate_markup(bs4, tree, parent):
@@ -218,8 +255,8 @@ def iter_class_base(class_def, hierarchy):
     """ Iterates the class to find all of their base classes
         and iterate through them
     Args:
-        classDef: The instance of SymbolMap::Class Object whose base we are searching for
-        hierachy: The current hierachy of classes to append to if we find another base
+        class_def: The instance of SymbolMap::Class Object whose base we are searching for
+        hierarchy: The current hierachy of classes to append to if we find another base
     """
 
     if class_def is None or hasattr(class_def, 'name') is False:
@@ -241,7 +278,7 @@ def gen_class_hierarchy(bs4, class_def):
         out to its class file.
     Args:
         bs4: The current beautifulSoup html instance
-        classDef: The instance of SymbolMap::Class Object that we are generating
+        class_def: The instance of SymbolMap::Class Object that we are generating
             the hierachy for
     Returns:
         Empty if there is no base class
@@ -282,6 +319,7 @@ def gen_class_hierarchy(bs4, class_def):
         ul.append(li)
 
     return ul
+
 
 def replace_tag(bs4, tree, parent_tag, content):
     tag = tree.tag
@@ -405,24 +443,6 @@ def define_link_tag(tag, attrib):
         utils.log("DEFINING LINK TAG: " + str(tag), 1)
     else:
         tag["href"] = href
-
-
-# clone an element
-# from: http://stackoverflow.com/questions/23057631/clone-element-with-beautifulsoup/23058678#23058678
-def clone(el):
-    if isinstance(el, NavigableString):
-        return type(el)(el)
-
-    tag_copy = Tag(None, el.builder, el.name, el.namespace, el.nsprefix)
-    # work around bug where there is no builder set
-    # https://bugs.launchpad.net/beautifulsoup/+bug/1307471
-    tag_copy.attrs = dict(el.attrs)
-    tag_copy.index = el.index
-    for attr in ('can_be_empty_element', 'hidden'):
-        setattr(tag_copy, attr, getattr(el, attr))
-    for child in el.contents:
-        tag_copy.append(clone(child))
-    return tag_copy
 
 
 def replace_code_chunks(bs4):
@@ -570,22 +590,10 @@ def iterate_namespace(bs4, namespaces, tree, index, label):
     return child_count
 
 
-
-def has_ancestor(namespaces, compare_namespace):
-    compare_prefix = "::".join(compare_namespace.split("::")[0])
-    # hasAncestor = False
-    for ns in namespaces:
-        namespace = ns.name
-        prefix = "::".join(namespace.split("::")[0])
-        if prefix == compare_prefix and compare_namespace != namespace:
-            return True
-
-    return False
+# =================================================================================== BS4 Generation
 
 
 def generate_bs4(file_path):
-
-    # tree = None
     try:
         with open(file_path, "rb") as html_file:
             content = html_file.read().decode("utf-8", errors="replace")

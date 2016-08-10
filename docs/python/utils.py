@@ -16,7 +16,7 @@ from bs4 import BeautifulSoup, Tag
 from difflib import SequenceMatcher as SM
 
 
-# =============================================================================================== Logging
+# ========================================================================================== Logging
 
 def log(message, level=0, force=False):   
     if g.args.debug or force:
@@ -39,7 +39,7 @@ def log_progress(message):
     sys.stdout.flush()
 
 
-# =============================================================================================== Utilities
+# ======================================================================================== Utilities
 
 def strip_compound_name(full_string):
     ns_parts = full_string.split("::")
@@ -76,33 +76,6 @@ def parse_arg_list(arg_string):
     return stripped_args
 
 
-def relative_url(in_path, link):
-    """
-    Generates a relative url from a absolute destination directory 
-    to an absolute file path
-    """
-
-    index = 0
-    SEPARATOR = "/"
-    d = filter(None, in_path.replace('\\', SEPARATOR).split( SEPARATOR ))
-    s = filter(None, link.replace('\\', SEPARATOR).split( SEPARATOR ))
-
-    # FIND largest substring match
-    for i, resource in enumerate( d ):
-        if resource != s[i]:
-            break
-        index += 1
-
-    # remainder of source
-    s = s[index:]
-    
-    backCount = len( d ) - index
-
-    path = "../" * backCount
-    path += SEPARATOR.join( s )
-    return path
-
-
 def path_join(path, link):
     p = path.replace('\\', '/')
     l = link.replace('\\', '/')
@@ -122,6 +95,9 @@ def extract_anchor(element):
         return element.attrib["id"].split("_1")[-1]
     else:
         return None
+
+
+# =============================================================================== Definition parsing
 
 
 def parse_member_definition(bs4, member, member_name=None):
@@ -217,7 +193,7 @@ def find_typedefs_of(class_name, typedef_list):
     return typedefs
 
 
-# ======================================================================================================== Link Updating
+# ==================================================================================== Link Updating
 
 
 def get_path_dir(path):
@@ -228,6 +204,7 @@ def get_path_dir(path):
     else:
         in_dir = path
     return in_dir
+
 
 def update_links_abs(html, src_path):
     """
@@ -275,31 +252,31 @@ def update_links_abs(html, src_path):
             iframe["src"] = new_link
 
 
-# def relative_url(in_path, link):
-#     """
-#     Generates a relative url from a absolute destination directory 
-#     to an absolute file path
-#     """
+def relative_url(in_path, link):
+    """
+    Generates a relative url from a absolute destination directory
+    to an absolute file path
+    """
 
-#     index = 0
-#     SEPARATOR = "/"
-#     d = filter(None, in_path.replace('\\', SEPARATOR).split( SEPARATOR ))
-#     s = filter(None, link.replace('\\', SEPARATOR).split( SEPARATOR ))
+    index = 0
+    SEPARATOR = "/"
+    d = filter(None, in_path.replace('\\', SEPARATOR).split(SEPARATOR))
+    s = filter(None, link.replace('\\', SEPARATOR).split(SEPARATOR))
 
-#     # FIND largest substring match
-#     for i, resource in enumerate( d ):
-#         if resource != s[i]:
-#             break
-#         index += 1
+    # FIND largest substring match
+    for i, resource in enumerate(d):
+        if resource != s[i]:
+            break
+        index += 1
 
-#     # remainder of source
-#     s = s[index:]
-    
-#     backCount = len( d ) - index
+    # remainder of source
+    s = s[index:]
 
-#     path = "../" * backCount
-#     path += SEPARATOR.join( s )
-#     return path
+    backCount = len(d) - index
+
+    path = "../" * backCount
+    path += SEPARATOR.join(s)
+    return path
 
 
 def update_link_abs(link, in_path):
@@ -467,7 +444,8 @@ def update_link(link, in_path, out_path):
     return rel_link_path
 
 
-# =============================================================================================== File utils
+# ======================================================================================= File utils
+
 
 def get_file_prefix(file_path):
     return os.path.splitext(os.path.basename(file_path))[0]
@@ -538,8 +516,7 @@ def write_html(bs4, save_path):
         outFile.write(document)
 
 
-
-# ============================================================================================== Dynamic Page Generation
+# ========================================================================== Dynamic Page Generation
 
 
 def generate_dynamic_markup(ref_data):
@@ -650,7 +627,7 @@ def inject_html(src_content, dest_el, src_path, dest_path):
         log("appending html content to element [ " + e.message + " ]", 2)
 
 
-# ================================================================================================== Misc helper classes
+# ============================================================================== Misc helper classes
 
 
 class LinkData(object):
@@ -661,7 +638,7 @@ class LinkData(object):
         self.active = active
 
 
-# ==================================================================================================
+# ============================================================================== ETree finding utils
 
 def find_compound_name(tree):
     for compound_def in tree.iter("compounddef"):

@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 import re
 from difflib import SequenceMatcher as SM
 
+
 def generate_map(tag_path):
     """
     Returns a dictionary from Cinder class name to file path
@@ -115,7 +116,7 @@ def generate_map(tag_path):
         # find functions and add to symbol map
         members = ns.findall(r"member[@kind='function']")
         for member in members:
-            function_obj = SymbolMap.Function(member, base_class)
+            function_obj = SymbolMap.Function(member, "")
             ns_obj.functionList.append(function_obj)
             ns_obj.add_function(function_obj.name, function_obj)
 
@@ -216,8 +217,8 @@ def add_typedefs(typedefs, ns_name, symbol_map):
         file_path = typdef.find('anchorfile').text + "#" + typdef.find("anchor").text
         type_def_obj = SymbolMap.Typedef(name, type_name, file_path)
 
-        if shared_from_class is not None and type(shared_from_class) == SymbolMap.Class:
         # if shared_from_class is not None:
+        if shared_from_class is not None and type(shared_from_class) == SymbolMap.Class:
             type_def_obj.sharedFrom = shared_from_class
             # let the class know that it has some typedefs associated with it
             shared_from_class.add_type_def(type_def_obj)
@@ -237,7 +238,7 @@ class SymbolMap(object):
         self.files = {}
         self.enums = {}
         self.groups = {}
-        self.config = config;
+        self.config = config
 
     class Class(object):
         def __init__(self, class_tree):
@@ -420,7 +421,6 @@ class SymbolMap(object):
             return None
 
     def find_namespace(self, name):
-
         searchname = str(name)
         if searchname.find("ci::") == 0:
             searchname = searchname.replace("ci::", "cinder::")
@@ -503,7 +503,6 @@ class SymbolMap(object):
                     if testname == searchname:
                         return self.typedefs[typedef]
         return None
-
 
     def find_function(self, name, argstring=""):
 
@@ -686,7 +685,7 @@ class SymbolMap(object):
                     class_obj = self.find_class(class_key)
                     ns_classes.append(class_obj)
             else:
-                class_pre = get_namespace(class_key)
+                class_pre = utils.get_namespace(class_key)
                 if namespace == class_pre:
                     class_obj = self.find_class(class_key)
                     ns_classes.append(class_obj)
