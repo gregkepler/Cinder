@@ -13,3 +13,6 @@ HTML_SOURCE_PATH = BASE_PATH + 'htmlsrc' + os.sep
 TEMPLATE_PATH = BASE_PATH + 'htmlsrc' + os.sep + "_templates" + os.sep
 PARENT_DIR = BASE_PATH.split(os.sep + 'docs')[0]
 TAG_FILE_PATH = "doxygen" + os.sep + "cinder.tag"
+
+SUPPORTED_PLATFORMS = ["MSW", "OSX", "IOS", "ANDROID", "LINUX"]
+SUPPORTED_GLVARIANTS = ["ES_2", "ES_3", "VULKAN", "ANGLE"]

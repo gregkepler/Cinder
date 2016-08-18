@@ -7,6 +7,7 @@ import shutil
 import bs4utils
 import xml.etree.ElementTree as ET
 import globals as g
+import constants
 from globals import PATHS, config
 import posixpath
 from posixpath import join as urljoin
@@ -135,6 +136,20 @@ def parse_member_definition(bs4, member, member_name=None):
     description_div = bs4utils.markup_description(bs4, member)
     description_str = str(description_div) if len(description_div.text) > 0 else None
 
+    # print '-------------------'
+    # print member_name
+    # print 'vvvvvvvvvvvvvvvvvvv'
+
+    supported_platforms = parse_platforms(member)
+    supported_glvariants = parse_glvariants(member)
+
+
+    # print "PLATFORMS"
+    # print supported_platforms
+    #
+    # print "GL VARIANTS"
+    # print supported_glvariants
+
     member_obj = {
         "name": member_name,
         "return": return_str,
@@ -143,10 +158,112 @@ def parse_member_definition(bs4, member, member_name=None):
             "name": member_name,
             "args": argstring_text
         },
-        "description": description_str
+        "description": description_str,
+        "platforms": supported_platforms,
+        "glvariants": supported_glvariants
     }
 
     return member_obj
+
+
+def parse_platforms(member):
+    """
+    Finds all of the supported platforms, via <platform> tags and
+    determines what platform support for the given member is.
+    Args:
+        member: ETree node
+
+    Returns: Object which includes included platforms and specifically excluded platforms
+
+    """
+    # find platform tags
+    platforms = list()
+    if member.find(r'briefdescription/') is not None:
+        for child in list(member.findall(r'briefdescription/')[0]):
+            if child.tag == 'platform':
+                platforms.append(child.text)
+
+    if member.find(r'description/') is not None:
+        for child in list(member.findall(r'description/')[0]):
+            if child.tag == 'platform':
+                platforms.append(child.text)
+
+    # platform list
+    platform_exclusions = list()
+    platform_inclusions = list()
+    platform_nots = list()
+
+    # make list of all platform specifications
+    for platform in platforms:
+        if platform.find('EXC_') > -1:
+            platform_exclusions.append(platform[4:])
+        elif platform.find('NOT') > -1:
+            platform_nots.append(platform[4:])
+        else:
+            platform_inclusions.append(platform)
+
+    supported_platforms = list()
+    if len(platform_exclusions) > 0:
+        # remove exclusions from platform list
+        supported_platforms = list(set(constants.SUPPORTED_PLATFORMS) - set(platform_exclusions))
+    elif len(platform_inclusions) > 0:
+        supported_platforms = list(platform_inclusions)
+    supported_platforms = list(set(supported_platforms) - set(platform_nots))
+
+    platform_support = {
+        "inclusions": supported_platforms,
+        "nots": platform_nots
+    }
+    return platform_support
+
+
+def parse_glvariants(member):
+    """
+    Finds all of the supported gl variants, via <glvariant> tags and
+    determines what the gl variant support for the given member.
+    Args:
+        member: ETree node
+
+    Returns: Object which includes included gl variants and specifically excluded gl variants
+
+    """
+    # supported gl variants
+    glvariants = list()
+    if member.find(r'briefdescription/') is not None:
+        for child in list(member.findall(r'briefdescription/')[0]):
+            if child.tag == 'glvariant':
+                glvariants.append(child.text)
+
+    if member.find(r'description/') is not None:
+        for child in list(member.findall(r'description/')[0]):
+            if child.tag == 'glvariant':
+                glvariants.append(child.text)
+
+    variant_exclusions = list()
+    variant_nots = list()
+    variant_inclusions = list()
+
+    for variant in glvariants:
+        if variant.find('EXC_') > -1:
+            variant_exclusions.append(variant[4:])
+        elif variant.find('NOT_') > -1:
+            variant_nots.append(variant[4:])
+        else:
+            variant_inclusions.append(variant)
+
+    # remove exclusions from platform list
+    supported_variants = list()
+    if len(variant_exclusions) > 0:
+        supported_variants = list(set(constants.SUPPORTED_GLVARIANTS) - set(variant_exclusions))
+    elif len(variant_inclusions) > 0:
+        supported_variants = list(variant_inclusions)
+    supported_variants = list(set(supported_variants) - set(variant_nots))
+
+    variant_support = {
+        "inclusions": supported_variants,
+        "nots": variant_nots
+    }
+    return variant_support
 
 
 def parse_function(bs4, member, class_name=None):

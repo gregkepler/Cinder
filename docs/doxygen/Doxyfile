@@ -1,4 +1,4 @@
-# Doxyfile 1.8.10
+# Doxyfile 1.8.11
 
 # This file describes the settings to be used by the documentation system
 # doxygen (www.doxygen.org) for a project.
@@ -240,7 +240,36 @@ TAB_SIZE               = 2
 
 ALIASES                = "DummyImage{1}=\image html \"\1\" \" \" width=1cm" \
                          "Movie{3}=\htmlonly <!-- \endhtmlonly \DummyImage{\1} \htmlonly --><embed width=\"\2\" height=\"\3\" target=\"myself\" autoplay=\"false\" src=\"\1\" pluginspage=\"http://www.apple.com/quicktime/download/index.html\"></embed> \endhtmlonly" \
-                         "ImplShared=\ref guide_ImplShared \"Implicitly shared object\"."
+                         "ImplShared=\ref guide_ImplShared \"Implicitly shared object\"." \
+                         "MSW=\ref \xmlonly <platform>MSW</platform> \endxmlonly" \
+                         "OSX=\ref \xmlonly <platform>OSX</platform> \endxmlonly" \
+                         "IOS=\ref \xmlonly <platform>IOS</platform> \endxmlonly" \
+                         "LINUX=\ref \xmlonly <platform>LINUX</platform> \endxmlonly" \
+                         "ANDROID=\ref \xmlonly <platform>ANDROID</platform> \endxmlonly" \
+                         "NOT_MSW=\ref \xmlonly <platform>NOT_MSW</platform> \endxmlonly" \
+                         "NOT_OSX=\ref \xmlonly <platform>NOT_OSX</platform> \endxmlonly" \
+                         "NOT_IOS=\ref \xmlonly <platform>NOT_IOS</platform> \endxmlonly" \
+                         "NOT_LINUX=\ref \xmlonly <platform>NOT_LINUX</platform> \endxmlonly" \
+                         "NOT_ANDROID=\ref \xmlonly <platform>NOT_ANDROID</platform> \endxmlonly" \
+                         "EXC_MSW=\ref \xmlonly <platform>EXC_MSW</platform> \endxmlonly" \
+                         "EXC_OSX=\ref \xmlonly <platform>EXC_OSX</platform> \endxmlonly" \
+                         "EXC_IOS=\ref \xmlonly <platform>EXC_IOS</platform> \endxmlonly" \
+                         "EXC_LINUX=\ref \xmlonly <platform>EXC_LINUX</platform> \endxmlonly" \
+                         "EXC_ANDROID=\ref \xmlonly <platform>EXC_ANDROID</platform> \endxmlonly" \
+                         "ES2=\ref \xmlonly <glvariant>ES2</glvariant> \endxmlonly" \
+                         "ES3=\ref \xmlonly <glvariant>ES3</glvariant> \endxmlonly" \
+                         "VULKAN=\ref \xmlonly <glvariant>VULKAN</glvariant> \endxmlonly" \
+                         "ANGLE=\ref \xmlonly <glvariant>ANGLE</glvariant> \endxmlonly" \
+                         "NOT_ES2=\ref \xmlonly <glvariant>NOT_ES2</glvariant> \endxmlonly" \
+                         "NOT_ES3=\ref \xmlonly <glvariant>NOT_ES3</glvariant> \endxmlonly" \
+                         "NOT_VULKAN=\ref \xmlonly <glvariant>NOT_VULKAN</glvariant> \endxmlonly" \
+                         "NOT_ANGLE=\ref \xmlonly <glvariant>NOT_ANGLE</glvariant> \endxmlonly" \
+                         "EXC_ES2=\ref \xmlonly <glvariant>EXC_ES2</glvariant> \endxmlonly" \
+                         "EXC_ES3=\ref \xmlonly <glvariant>EXC_ES3</glvariant> \endxmlonly" \
+                         "EXC_VULKAN=\ref \xmlonly <glvariant>EXC_VULKAN</glvariant> \endxmlonly" \
+                         "EXC_ANGLE=\ref \xmlonly <glvariant>EXC_ANGLE</glvariant> \endxmlonly" \
+                         "ES{1}=\ref \xmlonly <glvariant>ES_\1</glvariant> \endxmlonly"
+                         
 
 # This tag can be used to specify a number of word-keyword mappings (TCL only).
 # A mapping has the form "name=value". For example adding "class=itcl::class"
@@ -751,6 +780,12 @@ WARN_IF_DOC_ERROR      = YES
 
 WARN_NO_PARAMDOC       = NO
 
+# If the WARN_AS_ERROR tag is set to YES then doxygen will immediately stop when
+# a warning is encountered.
+# The default value is: NO.
+
+WARN_AS_ERROR          = NO
+
 # The WARN_FORMAT tag determines the format of the warning messages that doxygen
 # can produce. The string should contain the $file, $line, and $text tags, which
 # will be replaced by the file and line number from which the warning originated
@@ -803,8 +838,8 @@ INPUT_ENCODING         = UTF-8
 # If left blank the following patterns are tested:*.c, *.cc, *.cxx, *.cpp,
 # *.c++, *.java, *.ii, *.ixx, *.ipp, *.i++, *.inl, *.idl, *.ddl, *.odl, *.h,
 # *.hh, *.hxx, *.hpp, *.h++, *.cs, *.d, *.php, *.php4, *.php5, *.phtml, *.inc,
-# *.m, *.markdown, *.md, *.mm, *.dox, *.py, *.f90, *.f, *.for, *.tcl, *.vhd,
-# *.vhdl, *.ucf, *.qsf, *.as and *.js.
+# *.m, *.markdown, *.md, *.mm, *.dox, *.py, *.pyw, *.f90, *.f, *.for, *.tcl,
+# *.vhd, *.vhdl, *.ucf, *.qsf, *.as and *.js.
 
 FILE_PATTERNS          = *.c \
                          *.cc \
@@ -921,6 +956,10 @@ IMAGE_PATH             = ../images
 # Note that the filter must not add or remove lines; it is applied before the
 # code is scanned, but not when the output code is generated. If lines are added
 # or removed, the anchors will not be placed correctly.
+#
+# Note that for custom extensions or not directly supported extensions you also
+# need to set EXTENSION_MAPPING for the extension otherwise the files are not
+# properly processed by doxygen.
 
 INPUT_FILTER           = 
 
@@ -930,6 +969,10 @@ INPUT_FILTER           =
 # (like *.cpp=my_cpp_filter). See INPUT_FILTER for further information on how
 # filters are used. If the FILTER_PATTERNS tag is empty or if none of the
 # patterns match the file name, INPUT_FILTER is applied.
+#
+# Note that for custom extensions or not directly supported extensions you also
+# need to set EXTENSION_MAPPING for the extension otherwise the files are not
+# properly processed by doxygen.
 
 FILTER_PATTERNS        = 
 
@@ -1047,7 +1090,7 @@ VERBATIM_HEADERS       = NO
 # rich C++ code for which doxygen's built-in parser lacks the necessary type
 # information.
 # Note: The availability of this option depends on whether or not doxygen was
-# compiled with the --with-libclang option.
+# generated with the -Duse-libclang=ON option for CMake.
 # The default value is: NO.
 
 CLANG_ASSISTED_PARSING = NO
@@ -1790,6 +1833,14 @@ LATEX_SOURCE_CODE      = NO
 # This tag requires that the tag GENERATE_LATEX is set to YES.
 
 LATEX_BIB_STYLE        = plain
+
+# If the LATEX_TIMESTAMP tag is set to YES then the footer of each generated
+# page will contain the date and time when the page was generated. Setting this
+# to NO can help when comparing the output of multiple runs.
+# The default value is: NO.
+# This tag requires that the tag GENERATE_LATEX is set to YES.
+
+LATEX_TIMESTAMP        = NO
 
 #---------------------------------------------------------------------------
 # Configuration options related to the RTF output

@@ -7,7 +7,7 @@ import globals as g
 from globals import PATHS
 from pystache.renderer import Renderer, Loader
 
-# convert docygen markup to html markup
+# convert doxygen markup to html markup
 tagDictionary = {
     "linebreak": "br",
     "emphasis": "em",
