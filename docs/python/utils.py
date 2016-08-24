@@ -47,6 +47,7 @@ def strip_compound_name(full_string):
     name = "".join(ns_parts[-1])
     return name
 
+
 def parse_arg_list(arg_string):
 
     # replace any commas in < and > enclosures with a temporary delim *** so that they
@@ -109,6 +110,7 @@ def parse_member_definition(bs4, member, member_name=None):
     :param member_name: the name of the class that's being parsed
     :return: the data object
     """
+
     if not member_name:
         member_name = member.find(r"name")
         member_name = member_name.text if member_name is not None else None
@@ -134,11 +136,7 @@ def parse_member_definition(bs4, member, member_name=None):
 
     # description
     description_div = bs4utils.markup_description(bs4, member)
-    description_str = str(description_div) if len(description_div.text) > 0 else None
-
-    # print '-------------------'
-    # print member_name
-    # print 'vvvvvvvvvvvvvvvvvvv'
+    description_str = str(description_div) if bs4utils.is_element_empty(description_div) is False else None
 
     supported_platforms = parse_platforms(member)
     supported_glvariants = parse_glvariants(member)
@@ -487,7 +485,6 @@ def update_links(html, template_path, src_path, save_path):
             link_src = iframe["src"]
             
             if link_src.startswith('javascript') or link_src.startswith('http'):
-                print "RETURN NOW BUDDY"
                 return
 
             # on osx/unix

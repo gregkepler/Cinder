@@ -186,6 +186,17 @@ def has_ancestor(namespaces, compare_namespace):
     return False
 
 
+def is_element_empty(element):
+    """
+    Determines if the element has empty content, such as an html element with spaces or
+    no content at all.
+    Returns:
+
+    """
+    is_empty = True if len(list(element.stripped_strings)) == 0 else False
+    return is_empty
+
+
 # ================================================================================
 
 
@@ -194,6 +205,7 @@ def markup_brief_description(bs4, tree, description_el=None):
         description_el = gen_tag(bs4, "div", ["description", "content"])
 
     brief_desc = tree.findall(r'briefdescription/')
+
     if brief_desc is None:
         return
     else:
@@ -211,7 +223,6 @@ def markup_description(bs4, tree):
 
     # mark up detailed description next
     detailed_desc = tree.findall(r'detaileddescription/')
-
     if detailed_desc is not None:
         for desc in detailed_desc:
             iterate_markup(bs4, desc, description_el)
@@ -225,6 +236,12 @@ def iterate_markup(bs4, tree, parent):
 
     current_tag = parent
     content = None
+
+    # check to see if tag is blacklisted
+    # TODO: figure out how to NOT have a dropdown if content is blacklisted
+    for tag in g.config.DESCRIPTION_TAG_BLACKLIST:
+        if tree.tag == tag:
+            return
 
     # add content to tag as is ( no stripping of whitespace )
     if tree.text is not None:

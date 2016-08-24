@@ -83,6 +83,8 @@ class Config(object):
         self.NAMESPACE_FILE_PREFIXES = ["namespace"]
         # file prefixes that indicate that the file should be parsed with the group template
         self.GROUP_FILE_PREFIXES = ["group"]
+        # blacklist of xml tags that should not be included in description markup
+        self.DESCRIPTION_TAG_BLACKLIST = ["platform", "glvariant"]
 
         # configuration properties for different kinds of pages whose content is mostly dynamic from cinder.tag file
         self.DYNAMIC_PAGES_CONFIG = [
