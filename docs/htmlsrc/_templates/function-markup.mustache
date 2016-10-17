@@ -12,6 +12,22 @@
         <div class="definition"><strong>{{{name}}}</strong> {{#args}}{{args}}{{/args}}</div>
         {{/definition}}
 
+        {{#platforms.inclusions}}
+            {{.}}
+        {{/platforms.inclusions}}
+
+        {{#platforms.nots}}
+            <s>{{.}}</s>
+        {{/platforms.nots}}
+
+        {{#glvariants.inclusions}}
+            {{.}}
+        {{/glvariants.inclusions}}
+
+        {{#glvariants.nots}}
+            <s>{{.}}</s>
+        {{/glvariants.nots}}
+
         {{#description}}
         <div class="description content">
             {{{description}}}
