@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from search_index import SearchIndex
+from search import SearchIndex
 
 
 def get_parent_dir(directory):
@@ -184,6 +184,7 @@ config = Config()
 state = State()
 args = None
 namespace_nav = None
+
 
 # TODO: These should be dynamic via doxygen generated data. perhaps from _cinder_8h.xml
 meta = {

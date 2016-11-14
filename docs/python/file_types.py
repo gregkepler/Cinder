@@ -23,6 +23,7 @@ class FileData(object):
         self.is_searchable = True
         self.body_class = ""
         self.section = ""
+        self.search_anchors = []
 
     def get_content(self):
         content = {

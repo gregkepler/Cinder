@@ -119,9 +119,10 @@ def parse_member_definition(bs4, member, member_name=None):
 
     # return type
     return_div = bs4utils.gen_tag(bs4, "span")
+    return_type = member.find(r"type").text if member.find(r"type") else ""
     return_markup = bs4utils.iterate_markup(bs4, member.find(r"type"), return_div)
 
-    # if id has a glm group key, replace link with <em>. The links are irrelevent atm
+    # if id has a glm group key, replace link with <em>. The links are irrelevant atm
     if any(member.attrib["id"].find(group_key) > -1 for group_key in config.GLM_MODULE_CONFIG["group_keys"]):
         if return_markup:
             bs4utils.replace_element(bs4, return_markup.a, "em")
@@ -150,6 +151,7 @@ def parse_member_definition(bs4, member, member_name=None):
 
     member_obj = {
         "name": member_name,
+        "return_type": return_type,
         "return": return_str,
         "anchor": anchor,
         "definition": {
@@ -750,6 +752,15 @@ class LinkData(object):
         self.link = link
         self.label = label
         self.active = active
+
+
+class SearchData(object):
+
+    def __init__(self, link, label, tags):
+        self.link = link
+        self.label = label
+        self.tags = tags
+
 
 
 # ============================================================================== ETree finding utils

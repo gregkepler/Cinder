@@ -176,6 +176,8 @@ def fill_class_content(tree, in_path):
     class_name = file_data.name
     file_def = g.symbolsMap.find_file(include_file)
     class_def = g.symbolsMap.find_class(class_name)
+    # list of anchors to add to the search list
+    anchor_search_list = []
 
     # class template stuff ------------------------------ #
     file_data.is_template = True if tree.find(r"compounddef/templateparamlist") is not None else False
@@ -298,6 +300,12 @@ def fill_class_content(tree, in_path):
         function_obj = utils.parse_function(bs4, memberFn, class_name)
         is_static = memberFn.attrib["static"]
 
+        # add to search list
+        prefix = function_obj["return_type"] + " " if function_obj["return_type"] else ""
+        search_label = prefix + class_name + "::" + function_obj["definition"]["name"] + function_obj["definition"]["args"]
+        search_obj = utils.SearchData("#"+function_obj["anchor"], search_label, [])
+        anchor_search_list.append( search_obj )
+
         if is_static == 'yes':
             public_static_fns.append(function_obj)
         else:
@@ -338,6 +346,8 @@ def fill_class_content(tree, in_path):
 
     if class_def:
         file_data.search_tags = class_def.tags
+
+    file_data.search_anchors = anchor_search_list
 
     return file_data
 
@@ -544,6 +554,8 @@ def finalize_file(bs4, file_data, out_path):
     Returns:
 
     """
+
+    print "\nfinalize file"
     # update links in the template
     utils.update_links(bs4, PATHS["TEMPLATE_PATH"] + "htmlContentTemplate.html",
                        PATHS["TEMPLATE_PATH"], out_path)
@@ -558,6 +570,9 @@ def finalize_file(bs4, file_data, out_path):
     # add to search index
     link_path = bs4utils.gen_rel_link_tag(bs4, "", out_path, PATHS["HTML_DEST_PATH"])["href"]
     g.search_index.add(bs4, link_path, file_data.kind, file_data.search_tags)
+
+    # add all sub search links
+    g.search_index.add_anchors(bs4, link_path, file_data.kind, file_data.search_anchors)
 
     # deactivate invalid relative links
     for link in bs4.find_all("a"):
